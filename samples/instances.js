@@ -15,11 +15,11 @@
 
 'use strict';
 
-function listInstances() {
-  // [START bigtable_list_instances]
-  // Imports the Google Cloud client library
-  const Bigtable = require('@google-cloud/bigtable');
+// Imports the Google Cloud client library
+const Bigtable = require('@google-cloud/bigtable');
 
+// [START bigtable_list_instances]
+function listInstances() {
   // Creates a client
   const bigtable = new Bigtable();
 
@@ -32,10 +32,10 @@ function listInstances() {
       instances.forEach(instance => console.log(instance.id));
     })
     .catch(err => {
-      console.error('ERROR:', err);
+      console.error('ERROR listing Cloud Bigtable instances: ', err);
     });
-  // [END bigtable_list_instances]
 }
+// [END bigtable_list_instances]  
 
 require(`yargs`)
   .demand(1)
