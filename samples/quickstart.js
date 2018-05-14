@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Google, Inc.
+ * Copyright 2018, Google LLC
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,99 +13,33 @@
  * limitations under the License.
  */
 
-// This file will only work on node v8.x since it uses async/await.
-// A version of this script is available for node v6.x in quickstart.v6.js
-
-/*eslint node/no-unsupported-features: ["error", {version: 8}]*/
+'use strict';
 
 // [START bigtable_quickstart]
-const bigtable = require('@google-cloud/bigtable');
+// Imports the Google Cloud client library
+const Bigtable = require('@google-cloud/bigtable');
 
-const TABLE_NAME = 'Hello-Bigtable';
-const COLUMN_FAMILY_NAME = 'cf1';
-const COLUMN_NAME = 'greeting';
-const INSTANCE_ID = process.env.INSTANCE_ID;
+// The name for the new instance
+const instanceName = 'my-bigtable-instance';
+const tableName = 'my-table';
+// Creates a Bigtable client
+const bigtable = new Bigtable();
 
-if (!INSTANCE_ID) {
-  throw new Error('Environment variables for INSTANCE_ID must be set!');
-}
+// Connect to an existing instance:my-bigtable-instance
+const instance = bigtable.instance(instanceName);
 
+// Connect to an existing table:my-table
+const table = instance.table(tableName);
 
-// Create a table with a single column family
-(async () => {
-  try {
-    // create a Bigtable client
-    const bigtableClient = bigtable();
-    const instance = bigtableClient.instance(INSTANCE_ID);
+//Read data from my-table
+table.createReadStream()
+  .on('error', console.error)
+  .on('data', function (row) {
+    // `row` is a Row object.
+    // Print the row key and data (column value, timestamp)
+    console.log(`Row key: ${row.id}\nData: ${JSON.stringify(row.data, null, 4)}`);
+  }).on('end', function () {
+    // All rows retrieved.
+  });
 
-    const table = instance.table(TABLE_NAME);
-     
-    const [tableExists] = await table.exists();
-    if (!tableExists) {
-      console.log(`Creating table ${TABLE_NAME}`);
-      const options = {
-        families: [
-          {
-            name: COLUMN_FAMILY_NAME,
-            // GC policy: retain only the most recent 2 versions
-            rule: {
-              versions: 2,
-            },
-          },
-        ],
-      };
-      await table.create(options);
-    }
-
-    // Write a few rows
-    console.log('Write some greetings to the table');
-    const greetings = ['Hello World!', 'Hello Bigtable!', 'Hello Node!'];
-    const rowsToInsert = greetings.map((greeting, index) => ({
-      key: `greeting${index}`,
-      data: {
-        [COLUMN_FAMILY_NAME]: {
-          [COLUMN_NAME]: {
-            // Setting the timestamp allows the client to perform retries. If
-            // server-side time is used, retries may cause multiple cells to
-            // be generated.
-            timestamp: new Date(),
-            value: greeting,
-          },
-        },
-      },
-    }));
-    await table.insert(rowsToInsert);
-
-    // Reading data from Bigtable
-
-    // Define a filter that retrieves the most recent version of the cell
-    const filter = [
-      {
-        column: {
-          cellLimit: 1
-        },
-      },
-    ];
-
-    // Read a single row using the filter
-    console.log('Reading a single row by row key');
-    let [singeRow] = await table.row('greeting0').get({filter});
-    const value = row.data[COLUMN_FAMILY_NAME][COLUMN_NAME][0].value
-    console.log(`\tRead: ${value}`);
-
-    // Read the entire table using the filter
-    console.log('Reading the entire table');
-    const [allRows] = await table.getRows({filter});
-    for (const row of allRows) {
-      const rowValue = row.data[COLUMN_FAMILY_NAME][COLUMN_NAME][0].value
-      console.log(`\tRead: ${rowValue}`);
-    }
-
-    // Delete the table
-    console.log('Delete the table');
-    await table.delete();
-  } catch (error) {
-    console.error('Something went wrong:', error);
-  }
-})();
 // [END bigtable_quickstart]
